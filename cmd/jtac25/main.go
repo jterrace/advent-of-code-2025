@@ -52,11 +52,12 @@ func run(logger *slog.Logger) error {
 
 	dial := 50
 
+	cross_count := 0
 	zero_count := 0
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Println(line)
+		fmt.Printf("%d + %s\n", dial, line)
 		if len(line) < 2 {
 			return fmt.Errorf("bad line: %s", line)
 		}
@@ -77,9 +78,25 @@ func run(logger *slog.Logger) error {
 		if value < 1 {
 			return fmt.Errorf("bad amount: %d", value)
 		}
-		dial += magnitude * value
-		dial = (dial%100 + 100) % 100
-		fmt.Println(dial)
+		cycles := value / 100
+		if cycles > 0 {
+			fmt.Printf("adding cross count %d\n", cycles)
+		}
+		cross_count += cycles
+		if value >= 100 {
+			value %= 100
+			fmt.Printf("modded: %d\n", value)
+		}
+		if value != 0 {
+			pre_dial := dial
+			dial += magnitude * value
+			if pre_dial != 0 && (dial > 99 || dial <= 0) {
+				fmt.Println("Adding 1 to cross count")
+				cross_count++
+			}
+			dial = (dial%100 + 100) % 100
+		}
+		fmt.Printf("dial post: %d\n", dial)
 		if dial == 0 {
 			zero_count++
 		}
@@ -90,5 +107,6 @@ func run(logger *slog.Logger) error {
 	}
 
 	fmt.Println(zero_count)
+	fmt.Println(cross_count)
 	return nil
 }
