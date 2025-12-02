@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -19,10 +20,12 @@ func allSame(s []string) bool {
 	return true
 }
 
-func Day2(ctx context.Context, cmd *cli.Command) error {
+var errPathRequired = errors.New("path is required")
+
+func Day2(_ context.Context, cmd *cli.Command) error {
 	path := cmd.StringArg("path")
 	if path == "" {
-		return fmt.Errorf("path is required")
+		return errPathRequired
 	}
 	fileData, err := os.ReadFile(path)
 	if err != nil {

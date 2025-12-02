@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func Day1(ctx context.Context, cmd *cli.Command) error {
+func Day1(_ context.Context, cmd *cli.Command) error {
 	path := cmd.StringArg("path")
 	if path == "" {
 		return fmt.Errorf("path is required")
@@ -23,8 +23,8 @@ func Day1(ctx context.Context, cmd *cli.Command) error {
 
 	dial := 50
 
-	cross_count := 0
-	zero_count := 0
+	crossCount := 0
+	zeroCount := 0
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -53,23 +53,23 @@ func Day1(ctx context.Context, cmd *cli.Command) error {
 		if cycles > 0 {
 			fmt.Printf("adding cross count %d\n", cycles)
 		}
-		cross_count += cycles
+		crossCount += cycles
 		if value >= 100 {
 			value %= 100
 			fmt.Printf("modded: %d\n", value)
 		}
 		if value != 0 {
-			pre_dial := dial
+			preDial := dial
 			dial += magnitude * value
-			if pre_dial != 0 && (dial > 99 || dial <= 0) {
+			if preDial != 0 && (dial > 99 || dial <= 0) {
 				fmt.Println("Adding 1 to cross count")
-				cross_count++
+				crossCount++
 			}
 			dial = (dial%100 + 100) % 100
 		}
 		fmt.Printf("dial post: %d\n", dial)
 		if dial == 0 {
-			zero_count++
+			zeroCount++
 		}
 	}
 
@@ -77,7 +77,7 @@ func Day1(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to scan file: %w", err)
 	}
 
-	fmt.Println(zero_count)
-	fmt.Println(cross_count)
+	fmt.Println(zeroCount)
+	fmt.Println(crossCount)
 	return nil
 }
