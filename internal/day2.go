@@ -10,6 +10,15 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+func allSame(s []string) bool {
+	for i := 1; i < len(s); i++ {
+		if s[i] != s[0] {
+			return false
+		}
+	}
+	return true
+}
+
 func Day2(ctx context.Context, cmd *cli.Command) error {
 	path := cmd.StringArg("path")
 	if path == "" {
@@ -45,14 +54,20 @@ func Day2(ctx context.Context, cmd *cli.Command) error {
 
 		for val := startRange; val <= endRange; val++ {
 			valStr := strconv.Itoa(val)
-			if len(valStr)%2 == 1 {
-				continue
-			}
 			// fmt.Printf("Checking %s\n", valStr)
-			mid := len(valStr) / 2
-			if valStr[:mid] == valStr[mid:] {
-				fmt.Printf("found invalid label %s\n", valStr)
-				invalidSum += val
+			for repeatWidth := 1; repeatWidth <= len(valStr)/2; repeatWidth++ {
+				if len(valStr)%repeatWidth != 0 {
+					continue
+				}
+				var pieces []string
+				for i := 0; i < len(valStr); i += repeatWidth {
+					pieces = append(pieces, valStr[i:i+repeatWidth])
+				}
+				if allSame(pieces) {
+					fmt.Printf("Found invalid label: %d\n", val)
+					invalidSum += val
+					break
+				}
 			}
 		}
 	}
