@@ -1,18 +1,18 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log/slog"
 	"os"
-	"strconv"
 
 	// This controls the maxprocs environment variable in container runtimes.
 	// see https://martin.baillie.id/wrote/gotchas-in-the-go-network-packages-defaults/#bonus-gomaxprocs-containers-and-the-cfs
 	"go.uber.org/automaxprocs/maxprocs"
 
+	"github.com/jterrace/advent-of-code-2025/internal"
 	"github.com/jterrace/advent-of-code-2025/internal/log"
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
@@ -37,76 +37,24 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("setting max procs: %w", err)
 	}
-
-	logger.InfoContext(ctx, "Hello world!", slog.String("location", "world"))
-
-	if len(os.Args) != 2 {
-		return fmt.Errorf("provide input file as first argument")
+	cmd := &cli.Command{
+		Commands: []*cli.Command{
+			{
+				Name:  "day1",
+				Usage: "run day 1",
+				Arguments: []cli.Argument{
+					&cli.StringArg{
+						Name: "path",
+					},
+				},
+				Action: internal.Day1,
+			},
+		},
 	}
 
-	file, err := os.Open(os.Args[1])
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	dial := 50
-
-	cross_count := 0
-	zero_count := 0
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		fmt.Printf("%d + %s\n", dial, line)
-		if len(line) < 2 {
-			return fmt.Errorf("bad line: %s", line)
-		}
-		direction := line[0]
-		magnitude := 0
-		switch direction {
-		case 'L':
-			magnitude = -1
-		case 'R':
-			magnitude = 1
-		default:
-			return fmt.Errorf("bad direction: %s", line)
-		}
-		value, err := strconv.Atoi(line[1:])
-		if err != nil {
-			return fmt.Errorf("bad amount: %s", line)
-		}
-		if value < 1 {
-			return fmt.Errorf("bad amount: %d", value)
-		}
-		cycles := value / 100
-		if cycles > 0 {
-			fmt.Printf("adding cross count %d\n", cycles)
-		}
-		cross_count += cycles
-		if value >= 100 {
-			value %= 100
-			fmt.Printf("modded: %d\n", value)
-		}
-		if value != 0 {
-			pre_dial := dial
-			dial += magnitude * value
-			if pre_dial != 0 && (dial > 99 || dial <= 0) {
-				fmt.Println("Adding 1 to cross count")
-				cross_count++
-			}
-			dial = (dial%100 + 100) % 100
-		}
-		fmt.Printf("dial post: %d\n", dial)
-		if dial == 0 {
-			zero_count++
-		}
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
+		return fmt.Errorf("failed to run command: %w", err)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("failed to scan file: %w", err)
-	}
-
-	fmt.Println(zero_count)
-	fmt.Println(cross_count)
 	return nil
 }
