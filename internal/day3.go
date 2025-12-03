@@ -2,13 +2,29 @@ package internal
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 
 	"github.com/urfave/cli/v3"
 )
+
+var WIDTH = 12
+
+func toIntArray(s string) ([]int, error) {
+	ints := make([]int, len(s))
+	for i, c := range s {
+		v, err := strconv.Atoi(string(c))
+		if err != nil {
+			return nil, fmt.Errorf("bad character: %s", c)
+		}
+		ints[i] = v
+	}
+	return ints, nil
+}
 
 func Day3(_ context.Context, cmd *cli.Command) error {
 	path := cmd.StringArg("path")
@@ -26,26 +42,35 @@ func Day3(_ context.Context, cmd *cli.Command) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 		fmt.Printf("%s\n", line)
-		if len(line) < 2 {
+		if len(line) < 2 || len(line) < WIDTH {
 			return fmt.Errorf("bad line: %s", line)
 		}
 
-		maxPair := 0
-		for i := 0; i < len(line)-1; i++ {
-			firstChar := line[i]
-			for j := i + 1; j < len(line); j++ {
-				pairStr := string(firstChar) + string(line[j])
-				pair, err := strconv.Atoi(pairStr)
-				if err != nil {
-					return fmt.Errorf("bad pair string: %s", pairStr)
-				}
-				if pair > maxPair {
-					maxPair = pair
-				}
-			}
+		joltDigits, err := toIntArray(line)
+		if err != nil {
+			return err
 		}
-		fmt.Printf("max pair %d\n", maxPair)
-		joltageSum += maxPair
+
+		maxJoltage := bytes.NewBufferString("")
+		nextStart := 0
+		for remaining := WIDTH; remaining > 0; remaining-- {
+			// fmt.Printf("next start %d remaining %d\n", nextStart, remaining)
+			checkBatch := joltDigits[nextStart : len(joltDigits)-remaining+1]
+			maxValue := slices.Max(checkBatch)
+			maxIndex := slices.Index(checkBatch, maxValue) + nextStart
+			if maxIndex == -1 {
+				return fmt.Errorf("somehow did not get max index from max value %d on line %s", maxValue, line)
+			}
+			maxJoltage.WriteByte(line[maxIndex])
+			nextStart = maxIndex + 1
+		}
+		maxJoltageStr := maxJoltage.String()
+		fmt.Printf("max voltage %s\n", maxJoltageStr)
+		maxJoltageNum, err := strconv.Atoi(maxJoltageStr)
+		if err != nil {
+			return fmt.Errorf("somehow failed to parse back to int %s", maxJoltageStr)
+		}
+		joltageSum += maxJoltageNum
 	}
 
 	fmt.Printf("total output joltage %d\n", joltageSum)
