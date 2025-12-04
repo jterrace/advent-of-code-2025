@@ -12,7 +12,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var WIDTH = 12
+const WIDTH = 12
 
 func toIntArray(s string) ([]int, error) {
 	ints := make([]int, len(s))
