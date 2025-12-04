@@ -42,7 +42,7 @@ type Adjacent struct {
 	row int
 }
 
-var _ADJACENTS = [...]Adjacent{
+var adjacents = [...]Adjacent{ //nolint:gochecknoglobals
 	{-1, -1},
 	{-1, 0},
 	{-1, 1},
@@ -67,7 +67,7 @@ func (g Grid) GetAndMarkAccessible() int {
 			}
 
 			numPresent := 0
-			for _, adjacent := range _ADJACENTS {
+			for _, adjacent := range adjacents {
 				val, err := g.Get(row+adjacent.row, col+adjacent.col)
 				if err != nil {
 					continue

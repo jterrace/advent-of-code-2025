@@ -19,7 +19,7 @@ func toIntArray(s string) ([]int, error) {
 	for i, c := range s {
 		v, err := strconv.Atoi(string(c))
 		if err != nil {
-			return nil, fmt.Errorf("bad character: %s", c)
+			return nil, fmt.Errorf("bad character: %c", c)
 		}
 		ints[i] = v
 	}

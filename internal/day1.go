@@ -10,6 +10,17 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+func getMagnitude(c rune) (int, error) {
+	switch c {
+	case 'L':
+		return -1, nil
+	case 'R':
+		return 1, nil
+	default:
+		return 0, fmt.Errorf("bad direction: %c", c)
+	}
+}
+
 func Day1(_ context.Context, cmd *cli.Command) error {
 	path := cmd.StringArg("path")
 	if path == "" {
@@ -32,15 +43,9 @@ func Day1(_ context.Context, cmd *cli.Command) error {
 		if len(line) < 2 {
 			return fmt.Errorf("bad line: %s", line)
 		}
-		direction := line[0]
-		magnitude := 0
-		switch direction {
-		case 'L':
-			magnitude = -1
-		case 'R':
-			magnitude = 1
-		default:
-			return fmt.Errorf("bad direction: %s", line)
+		magnitude, err := getMagnitude(rune(line[0]))
+		if err != nil {
+			return err
 		}
 		value, err := strconv.Atoi(line[1:])
 		if err != nil {
