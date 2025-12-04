@@ -54,6 +54,48 @@ var _ADJACENTS = [...]Adjacent{
 }
 
 const FILLED = '@'
+const MARKED = 'x'
+const CLEARED = '.'
+
+func (g Grid) GetAndMarkAccessible() int {
+	numFound := 0
+	for row := 0; row <= g.height; row++ {
+		for col := 0; col <= g.width; col++ {
+			val, _ := g.Get(row, col)
+			if val != FILLED {
+				continue
+			}
+
+			numPresent := 0
+			for _, adjacent := range _ADJACENTS {
+				val, err := g.Get(row+adjacent.row, col+adjacent.col)
+				if err != nil {
+					continue
+				}
+				if val == FILLED || val == MARKED {
+					numPresent++
+				}
+			}
+			if numPresent < 4 {
+				numFound++
+				g.Set(row, col, MARKED)
+			}
+		}
+	}
+	fmt.Printf("Found %d total\n", numFound)
+	return numFound
+}
+
+func (g Grid) ClearMarked() {
+	for row := 0; row <= g.height; row++ {
+		for col := 0; col <= g.width; col++ {
+			val, _ := g.Get(row, col)
+			if val == MARKED {
+				g.Set(row, col, CLEARED)
+			}
+		}
+	}
+}
 
 func Day4(_ context.Context, cmd *cli.Command) error {
 	path := cmd.StringArg("path")
@@ -88,32 +130,12 @@ func Day4(_ context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	numGet := 0
-	for row := 0; row <= grid.height; row++ {
-		for col := 0; col <= grid.width; col++ {
-			val, _ := grid.Get(row, col)
-			if val != FILLED {
-				continue
-			}
-
-			numPresent := 0
-			for _, adjacent := range _ADJACENTS {
-				val, err := grid.Get(row+adjacent.row, col+adjacent.col)
-				if err != nil {
-					continue
-				}
-				if val == FILLED {
-					numPresent++
-				}
-			}
-			if numPresent < 4 {
-				fmt.Printf("found num present %d at %d,%d\n", numPresent, row, col)
-				numGet++
-			}
-		}
+	totalRemoved := 0
+	for numFound := grid.GetAndMarkAccessible(); numFound > 0; numFound = grid.GetAndMarkAccessible() {
+		grid.ClearMarked()
+		totalRemoved += numFound
 	}
 
-	fmt.Printf("Found %d total\n", numGet)
-
+	fmt.Printf("Removed %d total\n", totalRemoved)
 	return nil
 }
