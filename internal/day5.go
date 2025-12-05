@@ -41,7 +41,7 @@ func Day5(_ context.Context, cmd *cli.Command) error {
 	}
 	defer file.Close()
 
-	numFresh := 0
+	numFresh := uint64(0)
 	freshSet := rangeset.Make[uint64]()
 	testingMode := false
 	scanner := bufio.NewScanner(file)
@@ -75,6 +75,13 @@ func Day5(_ context.Context, cmd *cli.Command) error {
 	fmt.Printf("total fresh: %d\n", numFresh)
 
 	fmt.Printf("%s\n", freshSet.String())
+
+	numFresh = 0
+	for v := range freshSet.SpansSeq() {
+		fmt.Printf("start %d end %d\n", v.Bot, v.Top)
+		numFresh += (v.Top - v.Bot)
+	}
+	fmt.Printf("total fresh: %d\n", numFresh)
 
 	return nil
 }
