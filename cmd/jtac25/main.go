@@ -89,6 +89,16 @@ func run(logger *slog.Logger) error {
 				},
 				Action: internal.Day5,
 			},
+			{
+				Name:  "day6",
+				Usage: "run day 6",
+				Arguments: []cli.Argument{
+					&cli.StringArg{
+						Name: "path",
+					},
+				},
+				Action: internal.Day6,
+			},
 		},
 	}
 
