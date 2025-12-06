@@ -22,7 +22,7 @@ func Day6(_ context.Context, cmd *cli.Command) error {
 	}
 	defer file.Close()
 
-	var accumulation []strings.Builder = nil
+	var accumulation []strings.Builder
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
