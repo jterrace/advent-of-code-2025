@@ -5,24 +5,11 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/urfave/cli/v3"
 )
-
-func strArrayToIntArray(strs []string) ([]int, error) {
-	ints := make([]int, len(strs))
-	for i, s := range strs {
-		v, err := strconv.Atoi(s)
-		if err != nil {
-			return nil, fmt.Errorf("bad string: %s", s)
-		}
-		ints[i] = v
-	}
-	return ints, nil
-}
 
 func Day6(_ context.Context, cmd *cli.Command) error {
 	path := cmd.StringArg("path")
@@ -35,59 +22,62 @@ func Day6(_ context.Context, cmd *cli.Command) error {
 	}
 	defer file.Close()
 
-	finalSum := 0
-	var accumulation [][]int = nil
+	var accumulation []strings.Builder = nil
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		// fmt.Printf("%s\n", line)
-		items := slices.DeleteFunc(strings.Split(line, " "), func(e string) bool {
-			return e == ""
-		})
-
-		if items[0] == "*" || items[0] == "+" {
-			fmt.Println(items)
-			fmt.Println("found last line")
-			if len(items) != len(accumulation) {
-				return fmt.Errorf("found end of size %d which doesn't match existing %d", len(items), len(accumulation))
-			}
-			for i, operand := range items {
-				if operand != "*" && operand != "+" {
-					return fmt.Errorf("bad operand %s", operand)
-				}
-				output := 0
-				if operand == "*" {
-					output = 1
-				}
-				for _, v := range accumulation[i] {
-					if operand == "+" {
-						output += v
-					} else {
-						output *= v
-					}
-				}
-				fmt.Printf("result %d\n", output)
-				finalSum += output
-			}
-			break
-		}
-
-		ints, err := strArrayToIntArray(items)
-		if err != nil {
-			return err
-		}
-		fmt.Println(ints)
+		fmt.Printf("%s\n", line)
 		if accumulation == nil {
-			accumulation = make([][]int, len(ints))
+			accumulation = make([]strings.Builder, len(line))
 		}
-		if len(ints) != len(accumulation) {
-			return fmt.Errorf("found line of size %d which doesn't match existing %d", len(ints), len(accumulation))
+
+		if len(line) != len(accumulation) {
+			return fmt.Errorf("found line of size %d doesn't match existing %d", len(line), len(accumulation))
 		}
-		for i, v := range ints {
-			accumulation[i] = append(accumulation[i], v)
+
+		for i, c := range line {
+			accumulation[i].WriteRune(c)
 		}
 	}
 
-	fmt.Printf("final sum %d\n", finalSum)
+	totalSum := 0
+	var curAccum []int
+	for col := len(accumulation) - 1; col >= 0; col-- {
+		colStr := strings.TrimSpace(accumulation[col].String())
+		if len(colStr) == 0 {
+			continue
+		}
+		fmt.Println(colStr)
+		operator := colStr[len(colStr)-1]
+		if operator == '+' || operator == '*' {
+			colStr = strings.TrimSpace(colStr[:len(colStr)-1])
+		}
+
+		colNum, err := strconv.Atoi(colStr)
+		if err != nil {
+			return fmt.Errorf("invalid num %s", colStr)
+		}
+		curAccum = append(curAccum, colNum)
+
+		if operator == '+' || operator == '*' {
+			sectionResult := 0
+			if operator == '*' {
+				sectionResult = 1
+			}
+			for _, v := range curAccum {
+				if operator == '+' {
+					sectionResult += v
+				} else {
+					sectionResult *= v
+				}
+			}
+			fmt.Printf("section result = %d\n", sectionResult)
+			totalSum += sectionResult
+
+			curAccum = nil
+		}
+	}
+
+	fmt.Printf("total sum %d\n", totalSum)
 	return nil
 }
