@@ -9,6 +9,25 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+func recurseLocation(row int, col int, grid [][]rune, numEnds *int) {
+	if row == len(grid)-1 {
+		*numEnds++
+		return
+	}
+
+	for nextRow := row + 1; nextRow < len(grid); nextRow++ {
+		if nextRow == len(grid)-1 {
+			*numEnds++
+			return
+		}
+		if grid[nextRow][col] == '^' {
+			recurseLocation(nextRow, col-1, grid, numEnds)
+			recurseLocation(nextRow, col+1, grid, numEnds)
+			return
+		}
+	}
+}
+
 func Day7(_ context.Context, cmd *cli.Command) error {
 	path := cmd.StringArg("path")
 	if path == "" {
@@ -31,27 +50,19 @@ func Day7(_ context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	splitCount := 0
-	for row, line := range lines {
-		if row == len(lines)-1 {
+	sLocation := -1
+	for col, c := range lines[0] {
+		if c == 'S' {
+			sLocation = col
 			break
 		}
-		for col, c := range line {
-			switch c {
-			case 'S':
-				lines[row+1][col] = '|'
-			case '|':
-				if lines[row+1][col] != '^' {
-					lines[row+1][col] = '|'
-					continue
-				}
-				splitCount += 1
-				lines[row+1][col-1] = '|'
-				lines[row+1][col+1] = '|'
-			}
-		}
+	}
+	if sLocation == -1 {
+		return fmt.Errorf("could not find S in first line %v", lines[0])
 	}
 
-	fmt.Printf("total splits %d\n", splitCount)
+	var numEnds int
+	recurseLocation(0, sLocation, lines, &numEnds)
+	fmt.Printf("total ends %d\n", numEnds)
 	return nil
 }
