@@ -22,17 +22,23 @@ type PairDistance struct {
 }
 
 type ConnectedComponents struct {
-	components    map[vec3.T]int
-	nextComponent int
+	components     map[vec3.T]int
+	componentsLeft map[int]bool
+	nextComponent  int
 }
 
 func newConnectedComponents() *ConnectedComponents {
-	return &ConnectedComponents{make(map[vec3.T]int), 0}
+	return &ConnectedComponents{make(map[vec3.T]int), make(map[int]bool), 0}
 }
 
 func (c *ConnectedComponents) Add(point vec3.T) {
 	c.components[point] = c.nextComponent
+	c.componentsLeft[c.nextComponent] = true
 	c.nextComponent++
+}
+
+func (c *ConnectedComponents) GetComponentsLeft() int {
+	return len(c.componentsLeft)
 }
 
 func (c *ConnectedComponents) Connect(point1 vec3.T, point2 vec3.T) {
@@ -42,6 +48,7 @@ func (c *ConnectedComponents) Connect(point1 vec3.T, point2 vec3.T) {
 		return
 	}
 
+	delete(c.componentsLeft, pt2Component)
 	fmt.Printf("merging components %d and %d\n", pt1Component, pt2Component)
 	for pt := range c.components {
 		if c.components[pt] == pt2Component {
@@ -113,17 +120,15 @@ func Day8(_ context.Context, cmd *cli.Command) error {
 
 	sortedByDistance := components.SortByDistance()
 	// fmt.Println(sortedByDistance)
-	for i, pairDistance := range sortedByDistance {
-		if i == 1000 {
+	for _, pairDistance := range sortedByDistance {
+		components.Connect(pairDistance.point1, pairDistance.point2)
+		componentsLeft := components.GetComponentsLeft()
+		fmt.Printf("reached %d at points %v and %v\n", componentsLeft, pairDistance.point1, pairDistance.point2)
+		if componentsLeft == 1 {
+			fmt.Printf("multiplied x values = %v\n", int(pairDistance.point1[0])*int(pairDistance.point2[0]))
 			break
 		}
-		components.Connect(pairDistance.point1, pairDistance.point2)
 	}
 
-	componentCount := components.ByComponentCount()
-	sortedValues := slices.Collect(maps.Values(componentCount))
-	sort.Ints(sortedValues)
-	fmt.Println(sortedValues)
-	fmt.Println(sortedValues[len(sortedValues)-1] * sortedValues[len(sortedValues)-2] * sortedValues[len(sortedValues)-3])
 	return nil
 }
