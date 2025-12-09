@@ -17,8 +17,9 @@ type Point struct {
 }
 
 type Board struct {
-	points []Point
-	grid   [][]bool
+	points       []Point
+	grid         [][]bool
+	borderPoints []Point
 }
 
 func newBoard() *Board {
@@ -51,6 +52,7 @@ func (b *Board) makeGrid() {
 
 func (b *Board) fillBetween(pt1 Point, pt2 Point) {
 	for curPoint := pt2; curPoint.row != pt1.row || curPoint.col != pt1.col; {
+		b.borderPoints = append(b.borderPoints, Point{curPoint.col, curPoint.row})
 		b.grid[curPoint.row][curPoint.col] = true
 		if curPoint.row == pt1.row {
 			if curPoint.col < pt1.col {
@@ -96,44 +98,6 @@ func (b *Board) fillBorder() {
 	b.fillBetween(lastPoint, b.points[0])
 }
 
-type FillingState int
-
-const (
-	StateOutside FillingState = iota
-	StateOpening
-	StateInside
-)
-
-func (b *Board) Fill() {
-	fmt.Println("filling")
-	var state FillingState
-	firstCol := -1
-	for row := 0; row < len(b.grid); row++ {
-		state = StateOutside
-		for col := 0; col < len(b.grid[row]); col++ {
-			v := b.grid[row][col]
-			switch state {
-			case StateOutside:
-				if v {
-					state = StateOpening
-					firstCol = col
-				}
-			case StateOpening:
-				if v {
-					firstCol = col
-				} else {
-					state = StateInside
-				}
-			case StateInside:
-				if v {
-					state = StateOutside
-					b.fillBetween(Point{firstCol, row}, Point{col, row})
-				}
-			}
-		}
-	}
-}
-
 func (b *Board) findLargestFilled() int {
 	fmt.Println("find largest")
 	maxArea := 0
@@ -142,23 +106,31 @@ func (b *Board) findLargestFilled() int {
 			if i == j {
 				break
 			}
-			pt3 := Point{pt1.col, pt2.row}
-			pt4 := Point{pt2.col, pt1.row}
-			// fmt.Println(pt1, pt2, pt3, pt4)
-			if b.isFilledBetween(pt1, pt3) && b.isFilledBetween(pt3, pt2) && b.isFilledBetween(pt2, pt4) && b.isFilledBetween(pt4, pt1) {
-				area := (pt2.col - pt1.col + 1) * (pt2.row - pt1.row + 1)
-				area = max(area, -area)
-				if area > maxArea {
-					fmt.Printf("found filled rect with %v and %v area %d\n", pt1, pt2, area)
-					maxArea = area
+			minCol := min(pt1.col, pt2.col)
+			maxCol := max(pt1.col, pt2.col)
+			minRow := min(pt1.row, pt2.row)
+			maxRow := max(pt1.row, pt2.row)
+			area := (maxCol - minCol + 1) * (maxRow - minRow + 1)
+			if area < maxArea {
+				continue
+			}
+			insideShape := true
+			for _, borderPt := range b.borderPoints {
+				if borderPt.col > minCol && borderPt.col < maxCol && borderPt.row > minRow && borderPt.row < maxRow {
+					insideShape = false
+					break
 				}
+			}
+			if insideShape {
+				fmt.Printf("found rect %v %v area %d\n", pt1, pt2, area)
+				maxArea = area
 			}
 		}
 	}
 	return maxArea
 }
 
-func (b *Board) Print(name string) {
+func (b *Board) Print() {
 	if len(b.grid) > 100 {
 		return
 	}
@@ -206,13 +178,12 @@ func Day9(_ context.Context, cmd *cli.Command) error {
 	}
 
 	board.makeGrid()
-	board.Print("initial")
+	board.Print()
 	board.fillBorder()
 	fmt.Println()
-	board.Print("borderFilled")
-	board.Fill()
+	board.Print()
 	fmt.Println()
-	board.Print("filled")
+	board.Print()
 	fmt.Printf("largest rect %d\n", board.findLargestFilled())
 
 	return nil
