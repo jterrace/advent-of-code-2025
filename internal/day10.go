@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/mowshon/iterium"
 	"github.com/urfave/cli/v3"
@@ -80,6 +81,17 @@ func (l *Joltages) Press(button Button) {
 	}
 }
 
+func (l *Joltages) PressCheck(button *Button, target *Joltages) bool {
+	result := true
+	for _, idx := range button.toggles {
+		l.vals[idx] += 1
+		if l.vals[idx] > target.vals[idx] {
+			result = false
+		}
+	}
+	return result
+}
+
 func (l *Joltages) Subtract(button Button) bool {
 	result := true
 	for _, idx := range button.toggles {
@@ -89,6 +101,16 @@ func (l *Joltages) Subtract(button Button) bool {
 		}
 	}
 	return result
+}
+
+func (l *Joltages) Add(other *Joltages, target *Joltages) bool {
+	for i, v := range other.vals {
+		l.vals[i] += v
+		if l.vals[i] > target.vals[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (l *Joltages) PressAll(buttons []Button) {
@@ -154,9 +176,100 @@ func newMachine(line string) (*Machine, error) {
 	return machine, nil
 }
 
-type TraversalCase struct {
-	curJoltages Joltages
-	numPresses  int
+type IndexIncrementer struct {
+	indexes  []int
+	bounds   [][]*Joltages
+	done     bool
+	sumCount int
+}
+
+func (incr *IndexIncrementer) IncrementFrom(start int) {
+	for i := start; i >= 0; i-- {
+		incr.indexes[i]++
+		//if i == 4 {
+		//	fmt.Println(incr.indexes)
+		//}
+		incr.sumCount++
+		if incr.indexes[i] < len(incr.bounds[i]) {
+			break
+		}
+		if i == 0 {
+			incr.done = true
+		}
+		incr.sumCount -= incr.indexes[i]
+		incr.indexes[i] = 0
+	}
+}
+
+func (incr *IndexIncrementer) Increment(broke bool) {
+	if broke {
+		//fmt.Println("broke before", incr.indexes)
+		incr.SkipFromBreak()
+		//fmt.Println("broke after", incr.indexes)
+		// time.Sleep(time.Second)
+	} else {
+		incr.IncrementFrom(len(incr.indexes) - 1)
+	}
+}
+
+func (incr *IndexIncrementer) SkipFromBreak() {
+	for i := len(incr.indexes) - 1; i >= 0; i-- {
+		if incr.indexes[i] != 0 {
+			incr.sumCount -= incr.indexes[i]
+			incr.indexes[i] = 0
+			incr.IncrementFrom(i - 1)
+			break
+		}
+	}
+}
+
+func newIndexIncrementer(bounds [][]*Joltages) *IndexIncrementer {
+	return &IndexIncrementer{make([]int, len(bounds)), bounds, false, 0}
+}
+
+func doJoltages(ch chan int, wg *sync.WaitGroup, machine *Machine) {
+	defer wg.Done()
+	fmt.Println(machine)
+	perStep := make([][]*Joltages, len(machine.buttons))
+	minCount := -1
+	for buttonIdx, button := range machine.buttons {
+		curJoltages := newJoltagesCount(len(machine.targetJoltages.vals))
+		for stepCount := 0; ; stepCount++ {
+			perStep[buttonIdx] = append(perStep[buttonIdx], &Joltages{slices.Clone(curJoltages.vals)})
+			if !curJoltages.PressCheck(&button, machine.targetJoltages) {
+				break
+			}
+		}
+		fmt.Println(buttonIdx, perStep[buttonIdx])
+	}
+
+	broke := false
+	for incr := newIndexIncrementer(perStep); !incr.done; incr.Increment(broke) {
+		// fmt.Println(incr.indexes)
+		if minCount != -1 && incr.sumCount >= minCount {
+			continue
+		}
+		sumJoltages := &Joltages{slices.Clone(perStep[0][incr.indexes[0]].vals)}
+		broke = false
+		for i := 1; i < len(incr.indexes); i++ {
+			if !sumJoltages.Add(perStep[i][incr.indexes[i]], machine.targetJoltages) {
+				broke = true
+				break
+			}
+		}
+		if broke {
+			continue
+		}
+		if slices.Equal(sumJoltages.vals, machine.targetJoltages.vals) {
+			fmt.Println("found one at size", incr.sumCount)
+			fmt.Println(incr.indexes)
+			if minCount == -1 || incr.sumCount < minCount {
+				minCount = incr.sumCount
+			}
+		}
+	}
+	fmt.Println("min count", minCount)
+	ch <- minCount
 }
 
 func Day10(_ context.Context, cmd *cli.Command) error {
@@ -217,45 +330,30 @@ func Day10(_ context.Context, cmd *cli.Command) error {
 	fmt.Printf("total sum %d\n", sum)
 
 	foundCounts = nil
+	var wg sync.WaitGroup
+	ch := make(chan int)
+
+	numExpected := len(machines)
 	for _, machine := range machines {
-		fmt.Println(machine)
-		targetZeros := make([]int, len(machine.targetJoltages.vals))
-		foundPress := false
-		// fmt.Println("Start machine", machine.targetLights)
-		for !foundPress {
-			checkCount := 0
-			startJoltage := Joltages{slices.Clone(machine.targetJoltages.vals)}
-			start := TraversalCase{startJoltage, 0}
-			queue := []TraversalCase{start}
-			seen := make(map[string]bool)
-			for cur := queue[0]; !foundPress && len(queue) > 0; {
-				cur = queue[0]
-				queue = queue[1:]
-				if cur.numPresses > checkCount {
-					checkCount = cur.numPresses
-					fmt.Println("at press count", checkCount)
-				}
-				// fmt.Println("current", cur)
-				for _, button := range machine.buttons {
-					nextJoltages := Joltages{slices.Clone(cur.curJoltages.vals)}
-					// fmt.Println(nextJoltages.vals)
-					result := nextJoltages.Subtract(button)
-					stupid := fmt.Sprint(nextJoltages.vals)
-					if !result || seen[stupid] {
-						continue
-					}
-					if slices.Equal(targetZeros, nextJoltages.vals) {
-						fmt.Println("found zero!")
-						foundPress = true
-						foundCounts = append(foundCounts, cur.numPresses+1)
-						break
-					}
-					seen[stupid] = true
-					queue = append(queue, TraversalCase{nextJoltages, cur.numPresses + 1})
-				}
-			}
-		}
+		wg.Add(1)
+		go doJoltages(ch, &wg, &machine)
 	}
+
+	var receiveWg sync.WaitGroup
+	receiveWg.Add(1)
+	go func() {
+		defer receiveWg.Done()
+		received := 0
+		for v := range ch {
+			received++
+			fmt.Println("got result!", v, received, "out of", numExpected)
+			foundCounts = append(foundCounts, v)
+		}
+	}()
+
+	wg.Wait()
+	close(ch)
+	receiveWg.Wait()
 
 	fmt.Println("found counts", foundCounts)
 	sum = 0

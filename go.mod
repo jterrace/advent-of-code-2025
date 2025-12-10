@@ -3,9 +3,13 @@ module github.com/jterrace/advent-of-code-2025
 go 1.24.2
 
 require (
+	github.com/andrewwphillips/rangeset v0.0.0-20250407104424-1c167419cb79
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
+	github.com/mowshon/iterium v1.0.0
 	github.com/stretchr/testify v1.11.1
+	github.com/ungerik/go3d v0.0.0-20251020194721-1bde1320d420
+	github.com/urfave/cli/v3 v3.6.1
 	go.opentelemetry.io/otel/trace v1.38.0
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/vuln v1.1.4
@@ -30,7 +34,6 @@ require (
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
 	github.com/alingse/nilnesserr v0.1.2 // indirect
-	github.com/andrewwphillips/rangeset v0.0.0-20250407104424-1c167419cb79 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -120,7 +123,6 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moricho/tparallel v0.3.2 // indirect
-	github.com/mowshon/iterium v1.0.0 // indirect
 	github.com/nakabonne/nestif v0.3.1 // indirect
 	github.com/nishanths/exhaustive v0.12.0 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
@@ -172,8 +174,6 @@ require (
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1 // indirect
 	github.com/ultraware/funlen v0.2.0 // indirect
 	github.com/ultraware/whitespace v0.2.0 // indirect
-	github.com/ungerik/go3d v0.0.0-20251020194721-1bde1320d420 // indirect
-	github.com/urfave/cli/v3 v3.6.1 // indirect
 	github.com/uudashr/gocognit v1.2.0 // indirect
 	github.com/uudashr/iface v1.3.1 // indirect
 	github.com/xen0n/gosmopolitan v1.2.2 // indirect
