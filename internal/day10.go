@@ -70,10 +70,60 @@ func newLights(lightStr string) (*Lights, error) {
 	return lights, nil
 }
 
+type Joltages struct {
+	vals []int
+}
+
+func (l *Joltages) Press(button Button) {
+	for _, idx := range button.toggles {
+		l.vals[idx] += 1
+	}
+}
+
+func (l *Joltages) Subtract(button Button) bool {
+	result := true
+	for _, idx := range button.toggles {
+		l.vals[idx] -= 1
+		if l.vals[idx] < 0 {
+			result = false
+		}
+	}
+	return result
+}
+
+func (l *Joltages) PressAll(buttons []Button) {
+	for _, button := range buttons {
+		l.Press(button)
+	}
+}
+
+func newJoltagesCount(count int) *Joltages {
+	vals := make([]int, count)
+	return &Joltages{vals}
+}
+
+func newJoltages(joltageStr string) (*Joltages, error) {
+	joltages := &Joltages{}
+	if joltageStr[0] != '{' || joltageStr[len(joltageStr)-1] != '}' {
+		return nil, fmt.Errorf("bad joltages section %s", joltageStr)
+	}
+	joltageStr = joltageStr[1 : len(joltageStr)-1]
+	// fmt.Println(joltageStr)
+	joltagesStrs := strings.Split(joltageStr, ",")
+	for _, joltageStr := range joltagesStrs {
+		joltage, err := strconv.Atoi(joltageStr)
+		if err != nil {
+			return nil, fmt.Errorf("bad joltage num %s", joltageStr)
+		}
+		joltages.vals = append(joltages.vals, joltage)
+	}
+	return joltages, nil
+}
+
 type Machine struct {
-	targetLights *Lights
-	buttons      []Button
-	joltages     []int
+	targetLights   *Lights
+	buttons        []Button
+	targetJoltages *Joltages
 }
 
 func newMachine(line string) (*Machine, error) {
@@ -86,20 +136,11 @@ func newMachine(line string) (*Machine, error) {
 	}
 	machine.targetLights = targetLights
 
-	joltageStr := tokens[len(tokens)-1]
-	if joltageStr[0] != '{' || joltageStr[len(joltageStr)-1] != '}' {
-		return nil, fmt.Errorf("bad joltages section %s", joltageStr)
+	joltages, err := newJoltages(tokens[len(tokens)-1])
+	if err != nil {
+		return nil, err
 	}
-	joltageStr = joltageStr[1 : len(joltageStr)-1]
-	// fmt.Println(joltageStr)
-	joltagesStrs := strings.Split(joltageStr, ",")
-	for _, joltageStr := range joltagesStrs {
-		joltage, err := strconv.Atoi(joltageStr)
-		if err != nil {
-			return nil, fmt.Errorf("bad joltage num %s", joltageStr)
-		}
-		machine.joltages = append(machine.joltages, joltage)
-	}
+	machine.targetJoltages = joltages
 
 	for i := 1; i < len(tokens)-1; i++ {
 		button, err := newButton(tokens[i])
@@ -111,6 +152,11 @@ func newMachine(line string) (*Machine, error) {
 
 	// fmt.Println(machine)
 	return machine, nil
+}
+
+type TraversalCase struct {
+	curJoltages Joltages
+	numPresses  int
 }
 
 func Day10(_ context.Context, cmd *cli.Command) error {
@@ -169,5 +215,54 @@ func Day10(_ context.Context, cmd *cli.Command) error {
 		sum += v
 	}
 	fmt.Printf("total sum %d\n", sum)
+
+	foundCounts = nil
+	for _, machine := range machines {
+		fmt.Println(machine)
+		targetZeros := make([]int, len(machine.targetJoltages.vals))
+		foundPress := false
+		// fmt.Println("Start machine", machine.targetLights)
+		for !foundPress {
+			checkCount := 0
+			startJoltage := Joltages{slices.Clone(machine.targetJoltages.vals)}
+			start := TraversalCase{startJoltage, 0}
+			queue := []TraversalCase{start}
+			seen := make(map[string]bool)
+			for cur := queue[0]; !foundPress && len(queue) > 0; {
+				cur = queue[0]
+				queue = queue[1:]
+				if cur.numPresses > checkCount {
+					checkCount = cur.numPresses
+					fmt.Println("at press count", checkCount)
+				}
+				// fmt.Println("current", cur)
+				for _, button := range machine.buttons {
+					nextJoltages := Joltages{slices.Clone(cur.curJoltages.vals)}
+					// fmt.Println(nextJoltages.vals)
+					result := nextJoltages.Subtract(button)
+					stupid := fmt.Sprint(nextJoltages.vals)
+					if !result || seen[stupid] {
+						continue
+					}
+					if slices.Equal(targetZeros, nextJoltages.vals) {
+						fmt.Println("found zero!")
+						foundPress = true
+						foundCounts = append(foundCounts, cur.numPresses+1)
+						break
+					}
+					seen[stupid] = true
+					queue = append(queue, TraversalCase{nextJoltages, cur.numPresses + 1})
+				}
+			}
+		}
+	}
+
+	fmt.Println("found counts", foundCounts)
+	sum = 0
+	for _, v := range foundCounts {
+		sum += v
+	}
+	fmt.Printf("total sum %d\n", sum)
+
 	return nil
 }
