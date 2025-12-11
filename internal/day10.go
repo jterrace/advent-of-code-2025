@@ -243,24 +243,37 @@ func doJoltages(ch chan int, wg *sync.WaitGroup, machine *Machine) {
 		fmt.Println(buttonIdx, perStep[buttonIdx])
 	}
 
+	numVoltages := len(machine.targetJoltages.vals)
 	broke := false
 	for incr := newIndexIncrementer(perStep); !incr.done; incr.Increment(broke) {
+		broke = false
 		// fmt.Println(incr.indexes)
 		if minCount != -1 && incr.sumCount >= minCount {
 			continue
 		}
-		sumJoltages := &Joltages{slices.Clone(perStep[0][incr.indexes[0]].vals)}
-		broke = false
-		for i := 1; i < len(incr.indexes); i++ {
-			if !sumJoltages.Add(perStep[i][incr.indexes[i]], machine.targetJoltages) {
-				broke = true
+
+		allEqual := true
+		for j := range numVoltages {
+			joltageSum := 0
+			for i := 0; i < len(incr.indexes); i++ {
+				joltageSum += perStep[i][incr.indexes[i]].vals[j]
+				if joltageSum > machine.targetJoltages.vals[j] {
+					broke = true
+					break
+				}
+			}
+			if broke {
+				break
+			}
+			if joltageSum != machine.targetJoltages.vals[j] {
+				allEqual = false
 				break
 			}
 		}
 		if broke {
 			continue
 		}
-		if slices.Equal(sumJoltages.vals, machine.targetJoltages.vals) {
+		if allEqual {
 			fmt.Println("found one at size", incr.sumCount)
 			fmt.Println(incr.indexes)
 			if minCount == -1 || incr.sumCount < minCount {
