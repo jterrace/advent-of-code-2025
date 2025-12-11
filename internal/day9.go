@@ -68,26 +68,6 @@ func (b *Board) fillBetween(pt1 Point, pt2 Point) {
 	}
 }
 
-func (b *Board) isFilledBetween(pt1 Point, pt2 Point) bool {
-	for curPoint := pt2; curPoint.row != pt1.row || curPoint.col != pt1.col; {
-		if !b.grid[curPoint.row][curPoint.col] {
-			return false
-		}
-		if curPoint.row == pt1.row {
-			if curPoint.col < pt1.col {
-				curPoint.col++
-			} else {
-				curPoint.col--
-			}
-		} else if curPoint.row < pt1.row {
-			curPoint.row++
-		} else {
-			curPoint.row--
-		}
-	}
-	return true
-}
-
 func (b *Board) fillBorder() {
 	fmt.Println("filling border")
 	lastPoint := b.points[0]

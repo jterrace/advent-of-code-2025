@@ -77,14 +77,14 @@ type Joltages struct {
 
 func (l *Joltages) Press(button Button) {
 	for _, idx := range button.toggles {
-		l.vals[idx] += 1
+		l.vals[idx]++
 	}
 }
 
 func (l *Joltages) PressCheck(button *Button, target *Joltages) bool {
 	result := true
 	for _, idx := range button.toggles {
-		l.vals[idx] += 1
+		l.vals[idx]++
 		if l.vals[idx] > target.vals[idx] {
 			result = false
 		}
@@ -95,7 +95,7 @@ func (l *Joltages) PressCheck(button *Button, target *Joltages) bool {
 func (l *Joltages) Subtract(button Button) bool {
 	result := true
 	for _, idx := range button.toggles {
-		l.vals[idx] -= 1
+		l.vals[idx]--
 		if l.vals[idx] < 0 {
 			result = false
 		}
@@ -186,9 +186,9 @@ type IndexIncrementer struct {
 func (incr *IndexIncrementer) IncrementFrom(start int) {
 	for i := start; i >= 0; i-- {
 		incr.indexes[i]++
-		//if i == 4 {
+		// if i == 4 {
 		//	fmt.Println(incr.indexes)
-		//}
+		// }
 		incr.sumCount++
 		if incr.indexes[i] < len(incr.bounds[i]) {
 			break
@@ -203,9 +203,9 @@ func (incr *IndexIncrementer) IncrementFrom(start int) {
 
 func (incr *IndexIncrementer) Increment(broke bool) {
 	if broke {
-		//fmt.Println("broke before", incr.indexes)
+		// fmt.Println("broke before", incr.indexes)
 		incr.SkipFromBreak()
-		//fmt.Println("broke after", incr.indexes)
+		// fmt.Println("broke after", incr.indexes)
 		// time.Sleep(time.Second)
 	} else {
 		incr.IncrementFrom(len(incr.indexes) - 1)
